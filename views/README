@@ -1,7 +1,0 @@
-Initially, I created these views for development purpose only.
-These views were going to be copied and pasted into frontend framework.
-But after I develop this app for a time.
-I found that it is more convenient for me developing it this way than switching between two screen on running two development servers at the same time.
-
-Anyway, the API itself is designed to support any frontend framework.
-Also, it is way more powerful to use Vue cli than developing it this way.
