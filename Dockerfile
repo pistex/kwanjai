@@ -7,12 +7,10 @@ RUN apk update && apk add --no-cache git
 COPY . .
 RUN go test ./... -v
 RUN go build -o app .
-CMD ["./app"]
 
 FROM alpine:latest  
 ENV GIN_MODE=release
 RUN apk --no-cache add ca-certificates
 WORKDIR /app
 COPY --from=0 /go/src/github.com/pistex/kwanjai/app .
-COPY --from=0 /go/src/github.com/pistex/kwanjai/views ./views
-CMD ["./app"]  
+CMD ["./app"]

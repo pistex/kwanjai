@@ -10,17 +10,15 @@ import (
 
 // User model.
 type User struct {
-	Username           string    `json:"username" binding:"required,ne=anonymous"`
-	Email              string    `json:"email" binding:"required,email"`
+	Username           string    `json:"username" gorm:"primaryKey"`
+	Email              string    `json:"email"`
 	Firstname          string    `json:"firstname"`
 	Lastname           string    `json:"lastname"`
-	Password           string    `json:"password" binding:"required,min=8"`
-	HashedPassword     string    `json:",omitempty"`
+	Password           string    `json:"password,omitempty"`
 	IsSuperUser        bool      `json:"is_superuser"`
 	IsVerified         bool      `json:"is_verified"`
 	IsActive           bool      `json:"is_active"`
-	JoinedDate         time.Time `json:"joined_date"`
-	ProfilePicture     string    `json:"profile_picture"`
+	JoinedDate         *time.Time `json:"joined_date"`
 	Plan               string    `json:"plan"`
 	Projects           int       `json:"projects"`
 	CustomerID         string    `json:",omitempty"`
@@ -55,8 +53,8 @@ func (user *User) findUser() (int, string, *User) {
 			log.Panicln(err)
 		}
 		if len(getEmail) > 0 {
-			getEmail[0].DataTo(user)
-			user.HashedPassword = ""
+			_ = getEmail[0].DataTo(user)
+			user.Password = ""
 			return http.StatusOK, "Get user successfully.", user
 		}
 		return http.StatusNotFound, "User not found.", nil
@@ -65,7 +63,7 @@ func (user *User) findUser() (int, string, *User) {
 	if err != nil {
 		log.Panicln(err)
 	}
-	user.HashedPassword = ""
+	user.Password = ""
 	return http.StatusOK, "Get user successfully.", user
 }
 
@@ -76,12 +74,12 @@ func (user *User) createUser() (int, string, *User) {
 	if userFoud != nil {
 		return http.StatusConflict, "Provided email or username is already registered.", nil
 	}
-	user.initialize()
+	user.Initialize()
 	_, err := libraries.FirestoreCreateOrSet("users", user.Username, user)
 	if err != nil {
 		log.Panicln(err)
 	}
-	user.HashedPassword = ""
+	user.Password = ""
 	return http.StatusCreated, "User created successfully.", user
 }
 
@@ -99,19 +97,18 @@ func (user *User) SendVerificationEmail() (int, string) {
 }
 
 // HashPassword before register
-func (user *User) HashPassword() {
-	hashedpassword, _ := libraries.HashPassword(user.Password)
-	user.Password = "password_is_created"
-	user.HashedPassword = hashedpassword
+func (user *User) HashPassword() error {
+	hashedPassword, err := libraries.HashPassword(user.Password)
+	user.Password = hashedPassword
+	return err
 }
 
-func (user *User) initialize() {
+func (user *User) Initialize() {
 	user.Plan = "Starter"
 	user.IsSuperUser = false
 	user.IsVerified = false
-	user.JoinedDate = time.Now().Truncate(time.Millisecond)
-	libraries.CreateProfilePicture(user.Username)
-	user.ProfilePicture = "https://storage.googleapis.com/kwanjai-a3803.appspot.com/" + user.Username + ".png"
+	now := time.Now()
+	user.JoinedDate = &now
 }
 
 // MakeAnonymous user
@@ -120,5 +117,6 @@ func (user *User) MakeAnonymous() {
 	user.IsSuperUser = false
 	user.IsVerified = false
 	user.IsActive = false
-	user.JoinedDate = time.Now()
+	now := time.Now()
+	user.JoinedDate = &now
 }

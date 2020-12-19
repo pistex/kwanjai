@@ -1,0 +1,26 @@
+version: '3'
+
+services:
+  mysql:
+    image: mysql
+    restart: always
+    ports:
+      - 3306:3306
+    volumes:
+      - .mysql/mysql_data:/var/lib/mysql
+    environment:
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: database
+      MYSQL_USER: username
+      MYSQL_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: password
+
+  go:
+    build: .
+    restart: always
+    environment:
+      DATABASE_HOST: mysql
+    ports:
+      - 8080:8080
+    depends_on:
+      - mysql

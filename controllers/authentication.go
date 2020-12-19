@@ -1,9 +1,11 @@
 package controllers
 
 import (
+	"kwanjai/forms"
 	"kwanjai/helpers"
 	"kwanjai/libraries"
 	"kwanjai/models"
+	"kwanjai/services"
 	"log"
 	"net/http"
 	"strings"
@@ -29,7 +31,7 @@ func Login() gin.HandlerFunc {
 		}
 		token := new(libraries.Token)
 		token.Initialize(username)
-		ginContext.JSON(status, gin.H{"message": "Logged in sucessfully", "token": token})
+		ginContext.JSON(status, gin.H{"message": "Logged in successfully", "token": token})
 	}
 }
 
@@ -74,13 +76,39 @@ func Register() gin.HandlerFunc {
 	}
 }
 
+// RegisterUser
+func RegisterUser() gin.HandlerFunc {
+	return func(ginContext *gin.Context) {
+		registerForm := new(forms.RegistrationForm)
+		err := ginContext.ShouldBindJSON(registerForm)
+		if err != nil {
+			ginContext.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			return
+		}
+		authenticationService := services.NewAuthenticationService()
+		err = authenticationService.RegisterUser(registerForm)
+		if err != nil {
+			if strings.HasPrefix(err.Error(), "Error 1062"){
+				ginContext.JSON(http.StatusBadRequest, gin.H{"message": "this username is already registered."})
+				return
+			}
+			ginContext.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+			return
+		}
+		ginContext.JSON(200, gin.H{
+			"message": "Tada",
+		})
+
+	}
+}
+
 // Logout endpoint
 func Logout() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
 		username := helpers.GetUsername(ginContext)
 		logout := new(models.LogoutData)
 		token := new(libraries.Token)
-		ginContext.ShouldBindJSON(token)
+		_ = ginContext.ShouldBindJSON(token)
 		extractedToken := strings.Split(ginContext.Request.Header.Get("Authorization"), "Bearer ")
 		if len(extractedToken) != 2 {
 			token.AccessToken = ""
@@ -88,7 +116,7 @@ func Logout() gin.HandlerFunc {
 			token.AccessToken = extractedToken[1]
 		}
 		if token.RefreshToken == "" {
-			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "No refresh token provied."})
+			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "No refresh token proved."})
 			return
 		}
 		accessPassed := make(chan bool)
@@ -102,8 +130,8 @@ func Logout() gin.HandlerFunc {
 			ginContext.JSON(http.StatusUnauthorized, gin.H{"message": "Token verification failed."})
 			return
 		}
-		libraries.FirestoreDelete("tokens", <-accessTokenID)
-		libraries.FirestoreDelete("tokens", <-refreshTokenID)
+		_, _ = libraries.FirestoreDelete("tokens", <-accessTokenID)
+		_, _ = libraries.FirestoreDelete("tokens", <-refreshTokenID)
 		tokenSearch, _ := libraries.FirestoreSearch("tokens", "user", "==", username)
 		if len(tokenSearch) == 0 {
 			_, err := libraries.FirestoreUpdateField("users", username, "IsActive", false)
@@ -115,11 +143,11 @@ func Logout() gin.HandlerFunc {
 	}
 }
 
-// RefreshToken endpiont
+// RefreshToken endpoint
 func RefreshToken() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
 		token := new(libraries.Token)
-		ginContext.ShouldBind(token)
+		_ = ginContext.ShouldBind(token)
 		extractedToken := strings.Split(ginContext.Request.Header.Get("Authorization"), "Bearer ")
 		if len(extractedToken) != 2 {
 			token.AccessToken = ""
@@ -127,7 +155,7 @@ func RefreshToken() gin.HandlerFunc {
 			token.AccessToken = extractedToken[1]
 		}
 		if token.RefreshToken == "" {
-			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "No refresh token provied."})
+			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "No refresh token provided."})
 			return
 		}
 		_, refreshUsername, _, err := libraries.VerifyToken(token.RefreshToken, "refresh")
@@ -138,7 +166,7 @@ func RefreshToken() gin.HandlerFunc {
 			}
 			log.Panicln(err)
 		}
-		_, accessUsername, tokenID, err := libraries.VerifyToken(token.AccessToken, "access") // if token is expried here, it's got delete.
+		_, accessUsername, tokenID, err := libraries.VerifyToken(token.AccessToken, "access") // if token is expired here, it's got delete.
 		if accessUsername != "anonymous" && err == nil {                                      // user != "anonymous" means token is still valid.
 			_, err = libraries.FirestoreDelete("tokens", tokenID)
 			if err != nil {
@@ -153,7 +181,7 @@ func RefreshToken() gin.HandlerFunc {
 	}
 }
 
-// TokenVerification endpiont
+// TokenVerification endpoint
 func TokenVerification() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
 		ginContext.Status(http.StatusOK)
@@ -174,11 +202,11 @@ func PasswordUpdate() gin.HandlerFunc {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		}
 		if passwordForm.NewPassword1 != passwordForm.NewPassword2 {
-			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Password confrimation failed."})
+			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Password confirmation failed."})
 		}
 		username := helpers.GetUsername(ginContext)
 		newPassword, _ := libraries.HashPassword(passwordForm.NewPassword1)
-		libraries.FirestoreUpdateField("users", username, "HashedPassword", newPassword)
+		_, _ = libraries.FirestoreUpdateField("users", username, "HashedPassword", newPassword)
 		ginContext.JSON(http.StatusOK, gin.H{"message": "Password updated."})
 	}
 }

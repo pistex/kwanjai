@@ -1,20 +1,9 @@
 # Kwanjai
 
-Kwanjai is an MVP Kanban board built with Gin (GO web framework) and Vue.js. The app itself is made for experimental purpose to show how to implement SaaS in GO and show frontend integration.
-
-### Payment Gateway
-Inititally, I wanted to use Stripe for payment gateway. Unfortunately, Stripe is not available in my country so I ended up using [Omise](https://github.com/omise/omise-go "Omise github repository") for the payment gateway.
-
-### Database
-My prevoious projects use SQL and I want to try something new. I use Cloud Firestore for database which I found it's not suitable with the app itself. Many objects are related, so it would be better to use SQL. But I also find some adventages using Cloud Firestore. The Firebase platform is easy to use on web and database can be edited easily on web.
-
-### Frontend
-Initially, I created views for integarted frontend for development purpose only.
-These views were going to be copied and pasted into frontend framework.
-But after I develop this app for a time. I found that it is more convenient for me developing it this way than switching between two screen on running two development servers at the same time.
-
-Anyway, the API itself is designed to support any frontend framework.
-Also, it is way more powerful to use Vue cli than developing it this way.
+### V2.0.0
+[] Change database to PostgreSQL  
+[] Add Redis for Caching  
+[] Change frontend to React  
 
 ### API Endpoints
 The root path is `/api`.

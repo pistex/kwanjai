@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"kwanjai/config"
+	"kwanjai/configuration"
 	"kwanjai/helpers"
 	"kwanjai/libraries"
 	"kwanjai/models"
@@ -152,12 +152,12 @@ func UpdateBoard() gin.HandlerFunc {
 			projectID := oldBoard.Project
 			db := libraries.FirestoreDB()
 			// #1 find the board where board.Position = newPosition and change board position to old position
-			searchBoardWithNewPostion := db.Collection("boards").Where("Project", "==", projectID).Where("Position", "==", newPosition).Documents(config.Context)
+			searchBoardWithNewPostion := db.Collection("boards").Where("Project", "==", projectID).Where("Position", "==", newPosition).Documents(configuration.Context)
 			boardWithNewPostion, err := searchBoardWithNewPostion.GetAll()
 			if err != nil {
 				log.Panic(err)
 			}
-			_, err = db.Collection("boards").Doc(boardWithNewPostion[0].Ref.ID).Update(config.Context, []firestore.Update{
+			_, err = db.Collection("boards").Doc(boardWithNewPostion[0].Ref.ID).Update(configuration.Context, []firestore.Update{
 				{
 					Path:  "Position",
 					Value: oldPosition,
@@ -167,7 +167,7 @@ func UpdateBoard() gin.HandlerFunc {
 				log.Panic(err)
 			}
 			// #2 change current board position to new position.
-			_, err = db.Collection("boards").Doc(updatedBoard.ID).Update(config.Context, []firestore.Update{
+			_, err = db.Collection("boards").Doc(updatedBoard.ID).Update(configuration.Context, []firestore.Update{
 				{
 					Path:  "Position",
 					Value: newPosition,

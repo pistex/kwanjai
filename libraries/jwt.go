@@ -3,7 +3,7 @@ package libraries
 import (
 	"errors"
 	"fmt"
-	"kwanjai/config"
+	"kwanjai/configuration"
 	"net/http"
 	"time"
 
@@ -31,9 +31,9 @@ type customClaims struct {
 // getSecretKeyAndLifetime function returns secret key (string), token lifetime (time.Duration), error.
 func getSecretKeyAndLifetime(tokenType string) (string, time.Duration, error) {
 	if tokenType == "access" {
-		return config.JWTAccessTokenSecretKey, config.JWTAccessTokenLifetime, nil
+		return configuration.JWTAccessTokenSecretKey, configuration.JWTAccessTokenLifetime, nil
 	} else if tokenType == "refresh" {
-		return config.JWTRefreshTokenSecretKey, config.JWTRefreshTokenLifetime, nil
+		return configuration.JWTRefreshTokenSecretKey, configuration.JWTRefreshTokenLifetime, nil
 	} else {
 		err := errors.New("no token type provide")
 		return "", time.Second, err

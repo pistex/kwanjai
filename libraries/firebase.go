@@ -4,7 +4,7 @@ import (
 	"errors"
 	"image"
 	"image/png"
-	"kwanjai/config"
+	"kwanjai/configuration"
 	"log"
 	"mime/multipart"
 	"os"
@@ -21,16 +21,16 @@ func FirebaseApp() *firebase.App {
 	var app *firebase.App
 	if os.Getenv("GIN_MODE") == "release" {
 		conf := &firebase.Config{
-			ProjectID:     config.FirebaseProjectID,
+			ProjectID:     configuration.FirebaseProjectID,
 			StorageBucket: "kwanjai-a3803.appspot.com",
 		}
-		app, err = firebase.NewApp(config.Context, conf)
+		app, err = firebase.NewApp(configuration.Context, conf)
 	} else {
 		conf := &firebase.Config{
 			StorageBucket: "kwanjai-a3803.appspot.com",
 		}
 		sa := option.WithCredentialsFile(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"))
-		app, err = firebase.NewApp(config.Context, conf, sa)
+		app, err = firebase.NewApp(configuration.Context, conf, sa)
 	}
 	if err != nil {
 		log.Panicln(err)
@@ -40,7 +40,7 @@ func FirebaseApp() *firebase.App {
 
 // FirestoreDB return firestore client and error
 func FirestoreDB() *firestore.Client {
-	firestoreClient, err := FirebaseApp().Firestore(config.Context)
+	firestoreClient, err := FirebaseApp().Firestore(configuration.Context)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -56,9 +56,9 @@ func FirestoreFind(collecttion string, id string) (*firestore.DocumentSnapshot, 
 		blank.Ref.Parent = new(firestore.CollectionRef)
 		return blank, errors.New("invalid document reference")
 	}
-	firestoreClient, err := FirebaseApp().Firestore(config.Context)
+	firestoreClient, err := FirebaseApp().Firestore(configuration.Context)
 	defer firestoreClient.Close()
-	document, err := firestoreClient.Collection(collecttion).Doc(id).Get(config.Context)
+	document, err := firestoreClient.Collection(collecttion).Doc(id).Get(configuration.Context)
 	return document, err
 }
 
@@ -69,17 +69,17 @@ func FirestoreDelete(collecttion string, id string) (*firestore.WriteResult, err
 		blank := new(firestore.WriteResult)
 		return blank, errors.New("invalid document reference")
 	}
-	firestoreClient, err := FirebaseApp().Firestore(config.Context)
+	firestoreClient, err := FirebaseApp().Firestore(configuration.Context)
 	defer firestoreClient.Close()
-	result, err := firestoreClient.Collection(collecttion).Doc(id).Delete(config.Context)
+	result, err := firestoreClient.Collection(collecttion).Doc(id).Delete(configuration.Context)
 	return result, err
 }
 
 // FirestoreSearch by collection and condition
 func FirestoreSearch(collecttion string, field string, condition string, property interface{}) ([]*firestore.DocumentSnapshot, error) {
-	firestoreClient, err := FirebaseApp().Firestore(config.Context)
+	firestoreClient, err := FirebaseApp().Firestore(configuration.Context)
 	defer firestoreClient.Close()
-	search := firestoreClient.Collection(collecttion).Where(field, condition, property).Documents(config.Context)
+	search := firestoreClient.Collection(collecttion).Where(field, condition, property).Documents(configuration.Context)
 	documents, err := search.GetAll()
 	return documents, err
 }
@@ -91,9 +91,9 @@ func FirestoreCreateOrSet(collecttion string, id string, data interface{}) (*fir
 		blank := new(firestore.WriteResult)
 		return blank, errors.New("invalid document reference")
 	}
-	firestoreClient, err := FirebaseApp().Firestore(config.Context)
+	firestoreClient, err := FirebaseApp().Firestore(configuration.Context)
 	defer firestoreClient.Close()
-	result, err := firestoreClient.Collection(collecttion).Doc(id).Set(config.Context, data)
+	result, err := firestoreClient.Collection(collecttion).Doc(id).Set(configuration.Context, data)
 	return result, err
 }
 
@@ -105,9 +105,9 @@ func FirestoreAdd(collecttion string, data interface{}) (*firestore.DocumentRef,
 		blankReference := new(firestore.DocumentRef)
 		return blankReference, blankResult, errors.New("invalid document reference")
 	}
-	firestoreClient, err := FirebaseApp().Firestore(config.Context)
+	firestoreClient, err := FirebaseApp().Firestore(configuration.Context)
 	defer firestoreClient.Close()
-	reference, result, err := firestoreClient.Collection(collecttion).Add(config.Context, data)
+	reference, result, err := firestoreClient.Collection(collecttion).Add(configuration.Context, data)
 	return reference, result, err
 }
 
@@ -118,9 +118,9 @@ func FirestoreUpdateField(collecttion string, id string, field string, property 
 		blank := new(firestore.WriteResult)
 		return blank, errors.New("invalid document reference")
 	}
-	firestoreClient, err := FirebaseApp().Firestore(config.Context)
+	firestoreClient, err := FirebaseApp().Firestore(configuration.Context)
 	defer firestoreClient.Close()
-	result, err := firestoreClient.Collection(collecttion).Doc(id).Update(config.Context, []firestore.Update{
+	result, err := firestoreClient.Collection(collecttion).Doc(id).Update(configuration.Context, []firestore.Update{
 		{
 			Path:  field,
 			Value: property,
@@ -140,9 +140,9 @@ func FirestoreUpdateFieldIfNotBlank(collecttion string, id string, field string,
 		blank := new(firestore.WriteResult)
 		return blank, nil
 	}
-	firestoreClient, err := FirebaseApp().Firestore(config.Context)
+	firestoreClient, err := FirebaseApp().Firestore(configuration.Context)
 	defer firestoreClient.Close()
-	result, err := firestoreClient.Collection(collecttion).Doc(id).Update(config.Context, []firestore.Update{
+	result, err := firestoreClient.Collection(collecttion).Doc(id).Update(configuration.Context, []firestore.Update{
 		{
 			Path:  field,
 			Value: property,
@@ -153,9 +153,9 @@ func FirestoreUpdateFieldIfNotBlank(collecttion string, id string, field string,
 
 // FirestoreDeleteField by collection, id, and field.
 func FirestoreDeleteField(collecttion string, id string, field string) (*firestore.WriteResult, error) {
-	firestoreClient, err := FirebaseApp().Firestore(config.Context)
+	firestoreClient, err := FirebaseApp().Firestore(configuration.Context)
 	defer firestoreClient.Close()
-	result, err := firestoreClient.Collection(collecttion).Doc(id).Update(config.Context, []firestore.Update{
+	result, err := firestoreClient.Collection(collecttion).Doc(id).Update(configuration.Context, []firestore.Update{
 		{
 			Path:  field,
 			Value: firestore.Delete,
@@ -171,7 +171,7 @@ func CloudStorageUpload(file multipart.File, path string) {
 		log.Panicln(err)
 	}
 	file.Close()
-	storageClient, err := FirebaseApp().Storage(config.Context)
+	storageClient, err := FirebaseApp().Storage(configuration.Context)
 	if err != nil {
 		log.Panicln(err)
 	}
@@ -180,13 +180,13 @@ func CloudStorageUpload(file multipart.File, path string) {
 	if err != nil {
 		log.Panicln(err)
 	}
-	fileWriter := bucket.Object(path).NewWriter(config.Context)
+	fileWriter := bucket.Object(path).NewWriter(configuration.Context)
 	png.Encode(fileWriter, newImage)
 	fileWriter.Close()
 }
 
 func CreateProfilePicture(username string) {
-	storageClient, err := FirebaseApp().Storage(config.Context)
+	storageClient, err := FirebaseApp().Storage(configuration.Context)
 	if err != nil {
 		log.Panicln(err)
 	}
@@ -196,7 +196,7 @@ func CreateProfilePicture(username string) {
 	}
 	src := bucket.Object("anonymous.png")
 	dst := bucket.Object(username + ".png")
-	_, err = dst.CopierFrom(src).Run(config.Context)
+	_, err = dst.CopierFrom(src).Run(configuration.Context)
 	if err != nil {
 		log.Panicln(err)
 	}

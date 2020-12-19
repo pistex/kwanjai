@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"kwanjai/config"
+	"kwanjai/configuration"
 	"kwanjai/helpers"
 	"kwanjai/libraries"
 	"kwanjai/models"
@@ -137,7 +137,7 @@ func DeleteProject() gin.HandlerFunc {
 		}
 		status, message, _ = project.DeleteProject()
 		db := libraries.FirestoreDB()
-		searchBoard := db.Collection("boards").Where("Project", "==", project.ID).Documents(config.Context)
+		searchBoard := db.Collection("boards").Where("Project", "==", project.ID).Documents(configuration.Context)
 		allBoard, err := searchBoard.GetAll()
 		if err != nil {
 			log.Panic(err)

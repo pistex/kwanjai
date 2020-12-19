@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"errors"
-	"kwanjai/config"
+	"kwanjai/configuration"
 	"kwanjai/helpers"
 	"kwanjai/libraries"
 	"kwanjai/models"
@@ -66,7 +66,7 @@ func UpgradePlan() gin.HandlerFunc {
 		userObject := user.(*models.User)
 		payment := new(paymentData)
 		ginContext.ShouldBindJSON(payment)
-		client, err := omise.NewClient(config.OmisePublicKey, config.OmiseSecretKey)
+		client, err := omise.NewClient(configuration.OmisePublicKey, configuration.OmiseSecretKey)
 		if err != nil {
 			log.Panicln(err)
 		}
@@ -124,7 +124,7 @@ func UpgradePlan() gin.HandlerFunc {
 			if err != nil {
 				log.Panicln(err)
 			}
-			req.SetBasicAuth(config.OmiseSecretKey, "")
+			req.SetBasicAuth(configuration.OmiseSecretKey, "")
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
 				log.Panicln(err)
@@ -192,7 +192,7 @@ func Unsubscribe() gin.HandlerFunc {
 		if err != nil {
 			log.Panicln(err)
 		}
-		req.SetBasicAuth(config.OmiseSecretKey, "")
+		req.SetBasicAuth(configuration.OmiseSecretKey, "")
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			log.Panicln(err)

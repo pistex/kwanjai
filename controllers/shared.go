@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"kwanjai/config"
+	"kwanjai/configuration"
 	"kwanjai/libraries"
 	"log"
 	"net/http"
@@ -15,7 +15,7 @@ func AllUsernames() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
 		usernames := []string{}
 		db := libraries.FirestoreDB()
-		getUsername := db.Collection("users").Documents(config.Context)
+		getUsername := db.Collection("users").Documents(configuration.Context)
 		allUsernames, err := getUsername.GetAll()
 		if err != nil {
 			log.Panicln(err)

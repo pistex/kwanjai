@@ -1,10 +1,10 @@
-package config
+package configuration
 
 import (
 	"context"
-	"time"
-
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+	"time"
 )
 
 var (
@@ -14,7 +14,7 @@ var (
 	FrontendURL                  string
 	BackendURL                   string
 	EmailServicePassword         string
-	EmailVerficationLifetime     time.Duration
+	EmailVerificationLifetime    time.Duration
 	JWTAccessTokenSecretKey      string
 	JWTRefreshTokenSecretKey     string
 	JWTAccessTokenLifetime       time.Duration
@@ -23,4 +23,9 @@ var (
 	DefaultAuthenticationBackend gin.HandlerFunc
 	OmisePublicKey               string
 	OmiseSecretKey               string
+	SQL                          *gorm.DB
+	SQLHostname                  string
+	SQLUsername                  string
+	SQLPassword                  string
+	SQLDatabaseName              string
 )

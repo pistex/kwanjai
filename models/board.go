@@ -1,7 +1,7 @@
 package models
 
 import (
-	"kwanjai/config"
+	"kwanjai/configuration"
 	"kwanjai/libraries"
 	"log"
 	"net/http"
@@ -57,7 +57,7 @@ func (board *Board) DeleteBoard() (int, string, *Board) {
 		log.Panicln(err)
 	}
 	db := libraries.FirestoreDB()
-	searchPost := db.Collection("posts").Where("Board", "==", board.ID).Documents(config.Context)
+	searchPost := db.Collection("posts").Where("Board", "==", board.ID).Documents(configuration.Context)
 	allPost, err := searchPost.GetAll()
 	if err != nil {
 		log.Panic(err)
