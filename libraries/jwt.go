@@ -3,8 +3,8 @@ package libraries
 import (
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"kwanjai/configuration"
-	"net/http"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -16,15 +16,9 @@ type Token struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
-// Use for tracking token issue status.
-type tokenStatus struct {
-	AccessToken  bool
-	RefreshToken bool
-}
-
 type customClaims struct {
 	User string `json:"user"`
-	ID   string `json:"id"`
+	UUID string `json:"uuid"`
 	*jwt.StandardClaims
 }
 
@@ -40,7 +34,7 @@ func getSecretKeyAndLifetime(tokenType string) (string, time.Duration, error) {
 	}
 }
 
-// GetTokenPayload function returns payload value (string), token validiation status (bool), error.
+// GetTokenPayload function returns payload value (string), token validation status (bool), error.
 func GetTokenPayload(tokenString string, tokenType string, field string) (string, bool, error) {
 	secretKey, _, err := getSecretKeyAndLifetime(tokenType)
 	if err != nil {
@@ -48,7 +42,7 @@ func GetTokenPayload(tokenString string, tokenType string, field string) (string
 	}
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		return []byte(secretKey), nil
 	})
@@ -69,76 +63,36 @@ func GetTokenPayload(tokenString string, tokenType string, field string) (string
 }
 
 // CreateToken returns token (string) and error.
-func CreateToken(tokenType string, username string) (string, error) {
+func CreateToken(tokenType string, username string) (string, *customClaims, error) {
 	secretKey, lifetime, err := getSecretKeyAndLifetime(tokenType)
 	if err != nil {
-		return "no token created.", err
-	}
-
-	now := time.Now().Truncate(time.Millisecond)
-
-	reference, _, err := FirestoreAdd("tokens",
-		map[string]interface{}{
-			"user":   username,
-			"expire": now,
-		})
-	if err != nil {
-		return "Cannot store token data.", err
+		return "no token created.", nil, err
 	}
 	claims := &customClaims{
 		username,
-		reference.ID,
+		uuid.New().String(),
 		&jwt.StandardClaims{
-			ExpiresAt: now.Add(lifetime).Unix(),
+			ExpiresAt: time.Now().Add(lifetime).Unix(),
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	signedToken, err := token.SignedString([]byte(secretKey))
-	return signedToken, err
+	return signedToken, claims, err
 }
 
-// Initialize token method.
-func (token *Token) Initialize(username string) (int, string) {
-
-	tokenStatus := new(tokenStatus)
-	accessPassed := make(chan bool)
-	refreshPassed := make(chan bool)
-	go tokenStatus.createToken(username, "access", token, accessPassed)
-	go tokenStatus.createToken(username, "refresh", token, refreshPassed)
-	passed := true == <-accessPassed && true == <-refreshPassed
-	if !passed {
-		return http.StatusInternalServerError, "create token error"
-	}
-	return http.StatusOK, "Token issued."
-}
-
-func (tokenStatus *tokenStatus) createToken(username string, tokenType string, token *Token, passed chan bool) {
-	var err error
-	if tokenType == "access" {
-		token.AccessToken, err = CreateToken("access", username)
-		passed <- err == nil
-	} else if tokenType == "refresh" {
-		token.RefreshToken, err = CreateToken("refresh", username)
-		passed <- err == nil
-	}
-}
-
-// VerifyToken function returns token validiation status (bool), username (string), token UUID (string), error.
+// VerifyToken function returns token validation status (bool), username (string), token UUID (string), error.
 func VerifyToken(tokenString string, tokenType string) (bool, string, string, error) {
-	tokenID, _, _ := GetTokenPayload(tokenString, tokenType, "id")
-	username, valid, err := GetTokenPayload(tokenString, tokenType, "user")
-	if err != nil {
-		if err.Error() == "Token is expired" {
-			FirestoreDelete("tokens", tokenID)
+	tokenID, valid, err := GetTokenPayload(tokenString, tokenType, "id")
+	if !valid || err != nil {
+		if err != nil {
+			if err.Error() == "Token is expired" {
+				// Todo: delete token here.
+			}
+			return false, "anonymous", "", err
 		}
-		return false, "anonymous", "", err
 	}
-	tokenVerification, _ := FirestoreFind("tokens", tokenID)
-	if !tokenVerification.Exists() {
-		return false, "anonymous", "", errors.New("token does not exist in database")
-	}
-	if valid {
-		return true, username, tokenID, nil
-	}
-	return false, "anonymous", "", err
+	username, _, _ := GetTokenPayload(tokenString, tokenType, "user")
+	// passing first verification ensure no error here.
+	return valid, username, tokenID, nil
+
 }

@@ -49,6 +49,9 @@ func (login *LoginCredential) Login() (int, string) {
 	login.ID = strings.ToLower(login.ID)
 	getUser, err := libraries.FirestoreFind("users", login.ID)
 	if err != nil {
+		if getUser == nil {
+			log.Panicln(err)
+		}
 		userPath := getUser.Ref.Path
 		userNotExist := status.Errorf(codes.NotFound, "%q not found", userPath)
 		if err.Error() == userNotExist.Error() {
@@ -63,9 +66,7 @@ func (login *LoginCredential) Login() (int, string) {
 				return http.StatusBadRequest, "Cannot login with provided credential."
 			}
 		} else {
-			if err != nil {
-				log.Panicln(err)
-			}
+			log.Panicln(err)
 		}
 	} else {
 		hashedPassword = getUser.Data()["HashedPassword"].(string)

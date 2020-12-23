@@ -3,11 +3,14 @@ package controllers
 import (
 	"errors"
 	"kwanjai/configuration"
+	"kwanjai/forms"
 	"kwanjai/helpers"
 	"kwanjai/libraries"
 	"kwanjai/models"
+	"kwanjai/services"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -15,6 +18,31 @@ import (
 	"github.com/omise/omise-go/operations"
 	"github.com/omise/omise-go/schedule"
 )
+
+// ProfilePicture endpoint
+func ChangeUsername() gin.HandlerFunc {
+	return func(ginContext *gin.Context) {
+		usernameChangeForm := new(forms.UsernameChangeForm)
+		err := ginContext.ShouldBindJSON(usernameChangeForm)
+		if err != nil {
+			ginContext.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			return
+		}
+		accountService := services.NewAccountService(ginContext)
+		err = accountService.ChangeUsername(usernameChangeForm)
+		if err != nil {
+			if strings.HasPrefix(err.Error(), "Error 1062"){
+				ginContext.JSON(http.StatusBadRequest, gin.H{"message": "this username is already registered."})
+				return
+			}
+			ginContext.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+			return
+		}
+		ginContext.JSON(200, gin.H{
+			"message": "username changed",
+		})
+	}
+}
 
 // ProfilePicture endpoint
 func ProfilePicture() gin.HandlerFunc {

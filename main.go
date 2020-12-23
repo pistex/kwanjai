@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	_ "image/jpeg"
@@ -74,13 +75,12 @@ func setupServer() {
 	//	log.Fatalln(err.Error())
 	//}
 
-
 	// Database setup
 	configuration.SQLUsername = "username"
 	configuration.SQLPassword = "password"
-	dbHost := os.Getenv("DATABASE_HOST")
-	configuration.SQLHostname = fmt.Sprintf("tcp(%v:3306)", dbHost)
-	log.Printf("Connecting to %v",configuration.SQLHostname)
+	mySQLHost := os.Getenv("MYSQL_HOST")
+	configuration.SQLHostname = fmt.Sprintf("tcp(%v:3306)", mySQLHost)
+	log.Printf("Connecting to %v", configuration.SQLHostname)
 	configuration.SQLDatabaseName = "database"
 	if configuration.SQL, err = gorm.Open(
 		mysql.Open(fmt.Sprintf("%v:%v@%v/%v",
@@ -88,12 +88,24 @@ func setupServer() {
 			configuration.SQLPassword,
 			configuration.SQLHostname,
 			configuration.SQLDatabaseName)),
-		nil); err != nil{
+		nil); err != nil {
 		log.Fatalln(err.Error())
 	}
-	if err = configuration.SQL.AutoMigrate(&models.User{}); err !=nil{
+	if err = configuration.SQL.AutoMigrate(&models.User{}); err != nil {
 		log.Fatalln(err.Error())
 	}
+	redisHost := os.Getenv("REDIS_HOST")
+	configuration.Redis = redis.NewClient(&redis.Options{
+		Addr:     fmt.Sprintf("%v:6379", redisHost),
+		Password: "", // no password set
+		DB:       0,  // use default DB
+	})
+	err = configuration.Redis.Set(configuration.Context, "initialized", "success", 4).Err()
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+	redisInitialized := configuration.Redis.Get(configuration.Context, "initialized")
+	log.Printf("Initialized Redis: %v", redisInitialized.String())
 }
 
 func getServer(mode string) *gin.Engine {
@@ -107,10 +119,14 @@ func getServer(mode string) *gin.Engine {
 		log.Println("running in production mode.")
 	}
 	ginEngine := gin.Default()
-	ginEngine.Use(configuration.DefaultAuthenticationBackend)
+	ginEngine.Use(middlewares.MySQL())
+	ginEngine.Use(middlewares.Redis())
+	//ginEngine.Use(configuration.DefaultAuthenticationBackend)
 	authentication := ginEngine.Group("/authentication")
-	authentication.POST("/register", controllers.RegisterUser())
-	//authentication.POST("/login", controllers.Login())
+	authentication.POST("/register", controllers.Register())
+	authentication.POST("/login", controllers.Login())
+	account := ginEngine.Group("/account")
+	account.POST("/change_username", controllers.ChangeUsername())
 	//authentication.POST("/register", controllers.Register())
 	//authentication.POST("/logout", middlewares.AuthenticatedOnly(), controllers.Logout())
 	//authentication.POST("/verify_email/:ID", controllers.VerifyEmail())

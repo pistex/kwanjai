@@ -1,6 +1,7 @@
 package models
 
 import (
+	"github.com/google/uuid"
 	"kwanjai/libraries"
 	"log"
 	"net/http"
@@ -10,20 +11,21 @@ import (
 
 // User model.
 type User struct {
-	Username           string    `json:"username" gorm:"primaryKey"`
-	Email              string    `json:"email"`
-	Firstname          string    `json:"firstname"`
-	Lastname           string    `json:"lastname"`
-	Password           string    `json:"password,omitempty"`
-	IsSuperUser        bool      `json:"is_superuser"`
-	IsVerified         bool      `json:"is_verified"`
-	IsActive           bool      `json:"is_active"`
+	UID                string     `json:"uid" gorm:"primaryKey"`
+	Username           string     `json:"username" gorm:"unique"`
+	Email              string     `json:"email" gorm:"unique"`
+	Firstname          string     `json:"firstname"`
+	Lastname           string     `json:"lastname"`
+	Password           string     `json:"password,omitempty"`
+	IsSuperUser        bool       `json:"is_superuser"`
+	IsVerified         bool       `json:"is_verified"`
+	IsActive           bool       `json:"is_active"`
 	JoinedDate         *time.Time `json:"joined_date"`
-	Plan               string    `json:"plan"`
-	Projects           int       `json:"projects"`
-	CustomerID         string    `json:",omitempty"`
-	SubscriptionID     string    `json:",omitempty"`
-	DateOfSubscription int       `json:"date_of_subscription"`
+	Plan               string     `json:"plan"`
+	Projects           int        `json:"projects"`
+	CustomerID         string     `json:",omitempty"`
+	SubscriptionID     string     `json:",omitempty"`
+	DateOfSubscription int        `json:"date_of_subscription"`
 }
 
 // Register user method.
@@ -70,8 +72,8 @@ func (user *User) findUser() (int, string, *User) {
 func (user *User) createUser() (int, string, *User) {
 	user.Username = strings.ToLower(user.Username)
 	user.Email = strings.ToLower(user.Email)
-	_, _, userFoud := user.findUser()
-	if userFoud != nil {
+	_, _, userFound := user.findUser()
+	if userFound != nil {
 		return http.StatusConflict, "Provided email or username is already registered.", nil
 	}
 	user.Initialize()
@@ -104,6 +106,7 @@ func (user *User) HashPassword() error {
 }
 
 func (user *User) Initialize() {
+	user.UID = uuid.New().String()
 	user.Plan = "Starter"
 	user.IsSuperUser = false
 	user.IsVerified = false

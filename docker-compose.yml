@@ -14,12 +14,18 @@ services:
       MYSQL_USER: username
       MYSQL_PASSWORD: password
       MYSQL_ROOT_PASSWORD: password
+  redis:
+    image: redis:alpine
+    restart: always
+    ports:
+      - 6379:6379
 
   go:
     build: .
     restart: always
     environment:
-      DATABASE_HOST: mysql
+      MYSQL_HOST: mysql
+      REDIS_HOST: redis
     ports:
       - 8080:8080
     depends_on:

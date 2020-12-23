@@ -3,6 +3,7 @@ package configuration
 import (
 	"context"
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
 	"gorm.io/gorm"
 	"time"
 )
@@ -28,4 +29,5 @@ var (
 	SQLUsername                  string
 	SQLPassword                  string
 	SQLDatabaseName              string
+	Redis                        *redis.Client
 )

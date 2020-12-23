@@ -16,68 +16,19 @@ import (
 // Login endpoint
 func Login() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
-		login := new(models.LoginCredential)
+		login := new(forms.LoginForm)
 		err := ginContext.ShouldBindJSON(login)
-		var status int
 		if err != nil {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 			return
 		}
-		status, username := login.Login()
-		if status != http.StatusOK {
-			ginContext.JSON(status, gin.H{"message": username})
-			// If status != 200, error message is returned instead of username.
-			return
-		}
-		token := new(libraries.Token)
-		token.Initialize(username)
-		ginContext.JSON(status, gin.H{"message": "Logged in successfully", "token": token})
+
+		ginContext.JSON(200, gin.H{"message": "Logged in successfully"})
 	}
 }
 
-// Register endpoint
+// Register
 func Register() gin.HandlerFunc {
-	return func(ginContext *gin.Context) {
-		registerInfo := new(models.User)
-		// Keep in mind.
-		// if content type is not provided ShouldBind is ShouldBindForm.
-		err := ginContext.ShouldBindJSON(registerInfo)
-		var status int
-		var message string
-		var user *models.User
-		if err != nil {
-			ginContext.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
-			return
-		}
-		registerInfo.HashPassword()
-		status, message, user = registerInfo.Register()
-		if status != http.StatusOK {
-			ginContext.JSON(status, gin.H{"message": message})
-			return
-		}
-		token := new(libraries.Token)
-		token.Initialize(user.Username)
-		if registerInfo.Username == "test1" ||
-			registerInfo.Email == "test1@example.com" ||
-			registerInfo.Username == "test2" ||
-			registerInfo.Email == "test2@example.com" {
-			ginContext.JSON(status, gin.H{
-				"message": message,
-				"token":   token,
-				"warning": "You have just registered with the username (test) or the email (test@example.com) which is going to be delete eventually. Please avoid using those names.",
-			})
-			return
-		}
-		ginContext.JSON(status, gin.H{
-			"message": message,
-			"token":   token,
-		})
-
-	}
-}
-
-// RegisterUser
-func RegisterUser() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
 		registerForm := new(forms.RegistrationForm)
 		err := ginContext.ShouldBindJSON(registerForm)
@@ -85,18 +36,18 @@ func RegisterUser() gin.HandlerFunc {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 			return
 		}
-		authenticationService := services.NewAuthenticationService()
+		authenticationService := services.NewAuthenticationService(ginContext)
 		err = authenticationService.RegisterUser(registerForm)
 		if err != nil {
-			if strings.HasPrefix(err.Error(), "Error 1062"){
+			if strings.HasPrefix(err.Error(), "Error 1062: Duplicate entry"){
 				ginContext.JSON(http.StatusBadRequest, gin.H{"message": "this username is already registered."})
 				return
 			}
 			ginContext.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 			return
 		}
-		ginContext.JSON(200, gin.H{
-			"message": "Tada",
+		ginContext.JSON(201, gin.H{
+			"message": "user registered",
 		})
 
 	}
@@ -173,7 +124,7 @@ func RefreshToken() gin.HandlerFunc {
 				log.Panicln(err)
 			}
 		}
-		newToken, err := libraries.CreateToken("access", refreshUsername)
+		newToken, _, err := libraries.CreateToken("access", refreshUsername)
 		token.AccessToken = newToken
 		ginContext.JSON(http.StatusOK, gin.H{
 			"token": token,

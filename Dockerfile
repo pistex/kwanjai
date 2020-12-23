@@ -5,7 +5,7 @@ ENV CGO_ENABLED=0
 WORKDIR /go/src/github.com/pistex/kwanjai
 RUN apk update && apk add --no-cache git
 COPY . .
-RUN go test ./... -v
+#RUN go test ./... -v
 RUN go build -o app .
 
 FROM alpine:latest  
